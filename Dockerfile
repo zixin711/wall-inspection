@@ -1,7 +1,7 @@
-# 私有化部署镜像。构建时需要一次外网（或内网 pip 源）；运行时只依赖内网的模型端点。
+# On-premises image. Build requires package access; runtime uses the configured model endpoint.
 FROM python:3.11-slim
 
-# opencv-python-headless 仍需要这几个运行库
+# Runtime libraries required by opencv-python-headless
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libglib2.0-0 libgl1 \
     && rm -rf /var/lib/apt/lists/*
@@ -17,7 +17,7 @@ COPY config/ ./config/
 COPY reference/ ./reference/
 COPY scripts/ ./scripts/
 
-# 数据目录挂卷，镜像本身不留业务数据
+# Keep application data on a mounted volume, outside the image.
 RUN mkdir -p /app/data
 VOLUME ["/app/data"]
 
