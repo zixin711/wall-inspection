@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#100D18">
+<title>墙面霉菌 UV 分级检测</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <span class="brand">MOULD<span>·</span>UV</span>
+    <span class="spacer"></span>
+    <div class="langtoggle" role="group" aria-label="Language">
+      <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ 采集 ============ -->
+    <section class="screen active" id="screen-capture">
+      <div class="stepbar">
+        <span class="label" id="step-label" data-i18n="step1"></span>
+        <span class="steps"><i class="on"></i><i></i><i></i></span>
+      </div>
+
+      <div class="viewport" id="viewport">
+        <video id="video" playsinline muted autoplay></video>
+        <img id="stillPreview" class="hidden" alt="">
+        <div class="onion hidden" id="onion"></div>
+        <div class="reticle" id="reticle" data-hint=""></div>
+        <div class="camfallback hidden" id="camFallback">
+          <span class="ico">▣</span>
+          <b id="camFbTitle"></b>
+          <span id="camFbBody"></span>
+          <div class="camacts">
+            <button type="button" class="btn primary" id="btnShootFb" data-i18n="shootWithCamera"></button>
+            <button type="button" class="btn ghost" id="btnPickFb" data-i18n="pickFile"></button>
+          </div>
+        </div>
+        <div class="hud" id="hud"></div>
+      </div>
+
+      <div class="shutterbar">
+        <span class="side" id="sideLeft"></span>
+        <button type="button" class="shutter" id="shutter" aria-label="Capture"><i></i></button>
+        <button type="button" class="side" id="sideRight"></button>
+      </div>
+
+      <div class="thumbstrip">
+        <div class="th empty" id="thWhite"><span data-i18n="whiteShot"></span></div>
+        <div class="th empty" id="thUv"><span data-i18n="uvShot"></span></div>
+      </div>
+
+      <div class="btnrow" id="shootRow">
+        <button type="button" class="btn ghost" id="btnShoot" data-i18n="shootWithCamera"></button>
+        <button type="button" class="btn ghost" id="btnPick" data-i18n="pickFile"></button>
+      </div>
+      <div class="btnrow">
+        <button type="button" class="btn primary" id="btnAnalyze" disabled data-i18n="analyze"></button>
+      </div>
+      <!-- capture 属性会直接唤起系统相机，HTTP 下也能用；getUserMedia 不行 -->
+      <input type="file" id="filePicker" accept="image/*" class="hidden">
+      <input type="file" id="fileCamera" accept="image/*" capture="environment" class="hidden">
+
+      <div class="guide">
+        <strong data-i18n="guideTitle"></strong>
+        <ul><!-- 按当前步骤由 renderGuide() 填充 --></ul>
+        <p class="safety" data-i18n="safety"></p>
+      </div>
+    </section>
+
+    <!-- ============ 分析中 ============ -->
+    <section class="screen" id="screen-analyzing">
+      <div class="stages" id="stages"></div>
+      <div class="btnrow"><button type="button" class="btn ghost" id="btnCancel" data-i18n="cancel"></button></div>
+    </section>
+
+    <!-- ============ 结果 ============ -->
+    <section class="screen" id="screen-result">
+      <div id="resultBanners"></div>
+
+      <div class="verdict">
+        <div class="gradeline">
+          <span class="g" id="gradeNum">—</span>
+          <span class="gm"><span data-i18n="gradeLabel"></span><b id="gradeName"></b></span>
+          <span class="conf"><span data-i18n="confidence"></span><b id="confVal">—</b></span>
+        </div>
+        <span class="srcflag" id="srcFlag"></span>
+        <p class="rationale" id="rationale"></p>
+        <div class="metrics" id="metrics"></div>
+      </div>
+
+      <div class="comparebar">
+        <button type="button" class="toggle" id="tgMask" aria-pressed="true" data-i18n="showMask"></button>
+        <button type="button" class="toggle" id="tgBoxes" aria-pressed="true" data-i18n="showBoxes"></button>
+      </div>
+      <div class="compare" id="compare">
+        <img id="cmpUv" alt="">
+        <img id="cmpMask" class="maskimg" alt="">
+        <div class="clip" id="cmpClip"><img id="cmpWhite" alt=""></div>
+        <div class="grip" id="cmpGrip"></div>
+        <span class="tag l" data-i18n="whiteTag"></span>
+        <span class="tag r" data-i18n="uvTag"></span>
+        <svg id="cmpSvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+
+      <div class="sect" id="sectRegions">
+        <h2><span data-i18n="regionsTitle"></span><span class="cnt" id="regionCount"></span></h2>
+        <div class="regions" id="regions"></div>
+      </div>
+
+      <div class="sect hidden" id="sectCauses">
+        <h2 data-i18n="causesTitle"></h2>
+        <div class="causes" id="causes"></div>
+      </div>
+
+      <div class="sect hidden" id="sectMorph">
+        <h2 data-i18n="morphTitle"></h2>
+        <p class="morph" id="morphText"></p>
+        <p class="disclaimer"><b data-i18n="morphWarnLead"></b> <span data-i18n="morphWarn"></span></p>
+      </div>
+
+      <div class="sect hidden" id="sectNotes">
+        <h2 data-i18n="notesTitle"></h2>
+        <div class="notes" id="notes"></div>
+      </div>
+
+      <div class="footer">
+        <button type="button" class="btn ghost" id="btnPrint" data-i18n="exportReport"></button>
+        <button type="button" class="btn ghost" id="btnDelete" data-i18n="deleteRecord"></button>
+        <button type="button" class="btn link" id="btnRestart" data-i18n="newInspection"></button>
+        <p class="audit" id="audit"></p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="/i18n.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+services:
+  mould-inspect:
+    build: .
+    image: mould-inspect:1.0.0
+    container_name: mould-inspect
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      # 分级标准热加载：改完 grading.yaml 无需重启容器
+      - ./config:/app/config:ro
+    # 模型跑在宿主机（vLLM 等）时，.env 里用 http://host.docker.internal:8100/v1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+# 如果模型也用容器部署，取消下面注释并把 LLM_BASE_URL 指向 http://vllm:8000/v1
+#  vllm:
+#    image: vllm/vllm-openai:latest
+#    command: ["--model", "/models/qwen3.6-35b-a3b", "--served-model-name", "qwen3.6-35b-a3b",
+#              "--limit-mm-per-prompt", "image=8"]
+#    volumes:
+#      - ./models:/models
+#    deploy:
+#      resources:
+#        reservations:
+#          devices: [{driver: nvidia, count: all, capabilities: [gpu]}]

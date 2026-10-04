@@ -1,0 +1,119 @@
+# ============================================================
+#  L1–L5 分级标准
+#  · criteria_*  : 注入 prompt 的文字判据，大模型主导分级时的依据
+#  · thresholds  : CV 兜底阈值（大模型不可用 / cv_led 策略时使用）
+#  阈值来自 reference/ 中 10 张样本的实测值，现场数据回流后可用
+#  scripts/refit_thresholds.py 重新拟合。修改本文件后热加载，无需重启。
+# ============================================================
+version: "th-2026.08"
+
+# 隐性扩散倍数 = UV 覆盖率 / 白光覆盖率
+# 实测：L1 4.1x · L2 5.1x · L3 3.6x · L4 1.1x · L5 1.1x
+# 早期高、晚期收敛。作为结果页重点指标呈现，但不单独决定分级；
+# 权重需按现场经验校准，先给保守值。
+hidden_spread:
+  enabled: true
+  display_priority: secondary   # primary | secondary — secondary 时分级仍是主视觉
+  # 当白光覆盖率低于该值时，倍数才有判读意义（分母太小会放大噪声）
+  meaningful_below_white_pct: 30.0
+  min_white_pct_for_ratio: 0.5
+  # 仅用于提示，不改变分级；experience_factor 供现场校准后调整
+  experience_factor: 1.0
+  alert_ratio: 2.5              # 超过该倍数时前端给出"扩散风险"提示
+
+# 菌落计数仅在低分级有物理意义（高分级已融合成片）
+count_meaningful_max_level: 2
+count_min_blob_area_pct: 0.02
+
+levels:
+  - level: 1
+    key: minimal
+    label_zh: 轻微
+    label_en: Minimal
+    thresholds:
+      coverage_white_pct: [0.0, 3.0]
+      coverage_uv_pct: [0.0, 12.0]
+      largest_patch_pct: [0.0, 2.0]
+    criteria_zh: >
+      散在点状或细小斑点，彼此独立无连片。白光下呈浅灰或灰绿色，
+      不易察觉；UV 下可见少量分散荧光点。基层未见明显受潮痕迹。
+    criteria_en: >
+      Scattered discrete specks, no coalescence. Faint grey-green under white
+      light, barely visible; few isolated fluorescent points under UV.
+    action_zh: 表面清洁并改善通风除湿即可，无需专业处理。建议 2 周后复查。
+    action_en: Surface cleaning plus ventilation/dehumidification. Re-check in 2 weeks.
+
+  - level: 2
+    key: light
+    label_zh: 轻度
+    label_en: Light
+    thresholds:
+      coverage_white_pct: [3.0, 8.0]
+      coverage_uv_pct: [12.0, 30.0]
+      largest_patch_pct: [0.0, 3.0]
+    criteria_zh: >
+      云雾状晕开，边界模糊，开始出现小范围连片趋势。UV 下荧光边界
+      明显大于白光可见污渍范围，提示存在肉眼不可见的活跃扩散。
+    criteria_en: >
+      Diffuse cloud-like staining with soft edges, early coalescence. UV
+      fluorescent boundary clearly exceeds the visible stain — active spread.
+    action_zh: 需查明水分来源。72 小时内处理可有效阻止进展；使用防霉清洁剂处理表面。
+    action_en: Identify the moisture source. Treating within 72h halts progression.
+
+  - level: 3
+    key: moderate
+    label_zh: 中度
+    label_en: Moderate
+    thresholds:
+      coverage_white_pct: [8.0, 25.0]
+      coverage_uv_pct: [30.0, 55.0]
+      largest_patch_pct: [3.0, 15.0]
+    criteria_zh: >
+      出现深色致密菌落与圆形卫星斑，主斑块周围有独立小菌落扩散。
+      说明已有稳定持续的水分供给，非偶发受潮。
+    criteria_en: >
+      Dark dense colonies with circular satellite spots around main patches —
+      indicates a sustained moisture supply, not incidental damp.
+    action_zh: 建议专业清除并检测基层含水率，排查渗漏或冷凝源。清理时须佩戴 N95 口罩与手套。
+    action_en: Professional removal plus substrate moisture testing. Wear N95 and gloves.
+
+  - level: 4
+    key: severe
+    label_zh: 重度
+    label_en: Severe
+    thresholds:
+      coverage_white_pct: [25.0, 60.0]
+      coverage_uv_pct: [50.0, 75.0]
+      largest_patch_pct: [15.0, 55.0]
+    criteria_zh: >
+      大面积黑色菌毯，多个斑块已融合成连续区域，基层多已受侵，
+      可能伴随涂层起皮、粉化。
+    criteria_en: >
+      Extensive black mats, patches merged into continuous areas; substrate
+      likely penetrated, often with paint blistering or chalking.
+    action_zh: 需铲除受污面层并做防霉处理。居住者（尤其呼吸道敏感人群）应减少暴露。建议由专业机构施工。
+    action_en: Remove affected finish layer and apply fungicidal treatment. Limit occupant exposure.
+
+  - level: 5
+    key: critical
+    label_zh: 极重
+    label_en: Critical
+    thresholds:
+      coverage_white_pct: [60.0, 100.0]
+      coverage_uv_pct: [70.0, 100.0]
+      largest_patch_pct: [55.0, 100.0]
+    criteria_zh: >
+      整墙黑变，并已蔓延至墙角、踢脚线或顶棚交接处，属结构性受潮。
+    criteria_en: >
+      Whole-wall blackening extending to corners, skirting or ceiling junctions —
+      structural moisture failure.
+    action_zh: 需专业治理并系统排查渗漏源（外墙、管道、屋面）。建议评估居住者临时避让。
+    action_en: Professional remediation plus systematic leak investigation. Consider temporary relocation.
+
+# 仲裁规则：大模型分级与 CV 分级的差异处理
+arbitration:
+  agree_confidence_bonus: 0.10
+  diff1_penalty: 0.15          # 差 1 级：取高者，置信度打折
+  diff2_needs_review: true     # 差 ≥2 级：标记需人工复核，两个结论并列呈现
+  no_uv_confidence_cap: 0.60   # 缺少 UV 图时置信度上限
+  unregistered_confidence_cap: 0.75
